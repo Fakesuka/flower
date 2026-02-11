@@ -3,7 +3,7 @@
 
 import type { Product, Story, Category, Order, CartItem, DiscountCard } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Get Telegram WebApp initData for authentication
 function getTelegramAuthHeader(): string {
@@ -32,10 +32,16 @@ async function apiFetch<T>(
     headers['X-Telegram-Auth'] = authData;
   }
   
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error('Не удалось подключиться к серверу. Проверьте интернет и повторите попытку.');
+  }
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }));
