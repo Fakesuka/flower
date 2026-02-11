@@ -15,9 +15,13 @@
   - `pickup_store_id`
   - `assigned_store_id`
   - статусы: `NEW`, `ACCEPTED`, `NEED_CUSTOMER_CONFIRMATION`, `PAYMENT_LINK_SENT`, `PAID`, `IN_PROGRESS`, `READY`, `OUT_FOR_DELIVERY`, `COMPLETED`, `CANCELED`
-- Race accept для delivery: `POST /api/orders/:id/accept` в SQLite транзакции (`BEGIN IMMEDIATE`)
-  - второй accept получает `409 Conflict`
-- Аудит событий заказа: `order_events` + `POST /api/orders/:id/events`
+- Платежная архитектура через провайдер:
+  - интерфейс провайдера (`src_v1/payments/provider.ts`)
+  - `MockPaymentProvider` (dev)
+  - `POST /api/orders/:id/create-payment-link`
+  - `GET /pay/mock/:paymentId` + кнопка Pay
+  - webhook-контракт `POST /api/payments/webhook/:provider`
+- Аудит событий заказа: `order_events` + события `PAYMENT_LINK_CREATED`, `PAYMENT_PAID`
 - Admin stats: `GET /api/admin/stats`
 
 ## ENV
@@ -51,7 +55,7 @@ curl http://localhost:3001/api/health
 
 ## Миграции
 
-SQL-миграции лежат в `backend/migrations`. 
+SQL-миграции лежат в `backend/migrations`.
 Применяются автоматически при старте.
 
 Таблица фиксации: `applied_migrations`.
@@ -98,6 +102,39 @@ curl -X POST http://localhost:3001/api/users \
   -d '{"username":"florist2","password":"pass12345","role":"florist","store_id":2}'
 ```
 
+## Локальный тест оплаты (mock)
+
+1. Создайте заказ `NEW`:
+```bash
+curl -X POST http://localhost:3001/api/orders \
+  -H 'Content-Type: application/json' \
+  -d '{"delivery_type":"delivery","customer_name":"Test","customer_phone":"+79990000000","items":[{"product_id":1,"qty":1,"price":1000,"name":"Rose"}],"total_price":1000}'
+```
+
+2. Флорист принимает заказ:
+```bash
+curl -X POST http://localhost:3001/api/orders/<ORDER_ID>/accept \
+  -H "Authorization: Bearer <FLORIST_TOKEN>" \
+  -H 'Content-Type: application/json' \
+  -d '{}'
+```
+
+3. Формирует ссылку на оплату:
+```bash
+curl -X POST http://localhost:3001/api/orders/<ORDER_ID>/create-payment-link \
+  -H "Authorization: Bearer <FLORIST_TOKEN>" \
+  -H 'Content-Type: application/json' \
+  -d '{}'
+```
+
+4. Откройте `payment_url` в браузере и нажмите **Pay**.
+5. Проверьте статус:
+```bash
+curl http://localhost:3001/api/orders/<ORDER_ID>/status
+```
+
+Должен стать `PAID`.
+
 ## Тесты
 
 ```bash
@@ -107,3 +144,6 @@ npm test
 Покрыто минимально:
 - login success/failure
 - race accept: второй accept → `409`
+- create payment link -> ok
+- mock pay -> order becomes `PAID`
+- second pay -> `409`
