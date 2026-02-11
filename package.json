@@ -1,0 +1,29 @@
+{
+  "name": "cvetochaya-lavka",
+  "version": "1.0.0",
+  "description": "Цветочная лавка - Telegram WebApp with fullstack backend",
+  "scripts": {
+    "install:all": "npm install && cd app && npm install && cd ../backend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:app\"",
+    "dev:app": "cd app && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:app && npm run build:backend",
+    "build:app": "cd app && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "start": "cd backend && npm start",
+    "setup": "npm run install:all && echo 'Setup complete! Copy .env.example to .env in both app and backend folders'"
+  },
+  "keywords": [
+    "telegram",
+    "webapp",
+    "flower-shop",
+    "react",
+    "express",
+    "sqlite"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
