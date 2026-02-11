@@ -3,6 +3,14 @@ import { http } from '@/lib/http';
 import { useAuthStore } from '@/store/authStore';
 import type { Order, Product, Story } from '@/types/api';
 
+
+interface OrderItem {
+  product_id?: number;
+  qty: number;
+  price?: number;
+  name: string;
+}
+
 export function FloristPage() {
   const token = useAuthStore((s) => s.token)!;
   const logout = useAuthStore((s) => s.logout);
@@ -35,9 +43,9 @@ export function FloristPage() {
   useEffect(() => { void loadAll(); }, []);
 
   const orderItems = useMemo(() => {
-    if (!selectedOrder) return [] as any[];
+    if (!selectedOrder) return [] as OrderItem[];
     try {
-      return JSON.parse(selectedOrder.items_json);
+      return JSON.parse(selectedOrder.items_json) as OrderItem[];
     } catch {
       return [];
     }
