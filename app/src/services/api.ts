@@ -54,6 +54,10 @@ async function apiFetch<T>(
       errorMessage = error.error || error.message || '';
     } else {
       errorMessage = (await response.text().catch(() => '')).trim();
+
+      if (errorMessage.includes('NOT_FOUND')) {
+        errorMessage = 'API не найдена на текущем домене. Проверьте VITE_API_URL.';
+      }
     }
 
     if (!errorMessage) {

@@ -4,6 +4,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { api } from '@/services/api';
+import {
+  categories as fallbackCategories,
+  products as fallbackProducts,
+  stories as fallbackStories,
+} from '@/data';
 import type { 
   Product, 
   CartItem, 
@@ -512,7 +517,15 @@ export const useApiStore = create<AppState>()(
           const { data } = await api.products.getAll(category ? { category } : undefined);
           set({ products: data || [], isLoading: false });
         } catch (e: any) {
-          set({ error: e.message || 'Не удалось загрузить каталог', isLoading: false });
+          const filteredFallback = category
+            ? fallbackProducts.filter((product) => product.category === category)
+            : fallbackProducts;
+
+          set({
+            error: e.message || 'Не удалось загрузить каталог',
+            products: filteredFallback,
+            isLoading: false,
+          });
         }
       },
       fetchStories: async () => {
@@ -520,7 +533,7 @@ export const useApiStore = create<AppState>()(
           const { data } = await api.stories.getAll();
           set({ stories: data || [] });
         } catch (e) {
-          // Silently fail
+          set({ stories: fallbackStories });
         }
       },
       fetchCategories: async () => {
@@ -528,7 +541,7 @@ export const useApiStore = create<AppState>()(
           const { data } = await api.categories.getAll();
           set({ categories: data || [] });
         } catch (e) {
-          // Silently fail
+          set({ categories: fallbackCategories });
         }
       },
       searchProducts: async (query: string) => {
