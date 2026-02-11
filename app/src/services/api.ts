@@ -3,7 +3,7 @@
 
 import type { Product, Story, Category, Order, CartItem, DiscountCard } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Get Telegram WebApp initData for authentication
 function getTelegramAuthHeader(): string {
@@ -32,16 +32,48 @@ async function apiFetch<T>(
     headers['X-Telegram-Auth'] = authData;
   }
   
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error('Не удалось подключиться к серверу. Проверьте интернет и повторите попытку.');
   }
   
+  if (!response.ok) {
+    let errorMessage = '';
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const error = await response
+        .json()
+        .catch(() => ({ error: '' } as { error?: string; message?: string }));
+      errorMessage = error.error || error.message || '';
+    } else {
+      errorMessage = (await response.text().catch(() => '')).trim();
+    }
+
+    if (!errorMessage) {
+      if (response.status === 401 || response.status === 403) {
+        errorMessage = 'Требуется авторизация в Telegram.';
+      } else if (response.status === 404) {
+        errorMessage = 'Сервис временно недоступен (404).';
+      } else {
+        errorMessage = response.statusText || `HTTP ${response.status}`;
+      }
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('Сервер вернул неожиданный формат ответа.');
+  }
+
   return response.json();
 }
 

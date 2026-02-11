@@ -512,7 +512,7 @@ export const useApiStore = create<AppState>()(
           const { data } = await api.products.getAll(category ? { category } : undefined);
           set({ products: data || [], isLoading: false });
         } catch (e: any) {
-          set({ error: e.message, isLoading: false });
+          set({ error: e.message || 'Не удалось загрузить каталог', isLoading: false });
         }
       },
       fetchStories: async () => {
@@ -543,7 +543,7 @@ export const useApiStore = create<AppState>()(
       // Initialize
       initialize: async () => {
         const state = get();
-        await Promise.all([
+        await Promise.allSettled([
           state.fetchCategories(),
           state.fetchProducts(),
           state.fetchStories(),
