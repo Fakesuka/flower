@@ -70,7 +70,7 @@ export function FloristPage() {
   const callPaymentLink = async () => {
     if (!selectedOrder) return;
     try {
-      const data = await http<any>(`/orders/${selectedOrder.id}/payment-link`, { method: 'POST', body: JSON.stringify({}) }, token);
+      const data = await http<any>(`/orders/${selectedOrder.id}/create-payment-link`, { method: 'POST', body: JSON.stringify({}) }, token);
       setMessage(data.payment_link ? `Ссылка: ${data.payment_link}` : 'Запрос payment link отправлен');
       await setStatus('PAYMENT_LINK_SENT');
     } catch {
@@ -113,7 +113,14 @@ export function FloristPage() {
               <div className="text-sm">Товары: {orderItems.map((i) => `${i.name} x${i.qty}`).join(', ')}</div>
               <div className="flex flex-wrap gap-2">
                 <button className="px-3 py-1 rounded bg-blue-600 text-white" onClick={acceptOrder}>Принять</button>
-                <button className="px-3 py-1 rounded border" onClick={() => setStatus('IN_PROGRESS')}>В сборке</button>
+                <button
+                  className="px-3 py-1 rounded border disabled:opacity-50"
+                  onClick={() => setStatus('IN_PROGRESS')}
+                  disabled={selectedOrder.status !== 'PAID'}
+                  title={selectedOrder.status !== 'PAID' ? 'Доступно после оплаты (PAID)' : ''}
+                >
+                  Начать сборку
+                </button>
                 <button className="px-3 py-1 rounded border" onClick={() => setStatus('READY')}>Готов</button>
                 <button className="px-3 py-1 rounded border" onClick={() => setStatus('OUT_FOR_DELIVERY')}>Доставляется</button>
                 <button className="px-3 py-1 rounded border" onClick={() => setStatus('COMPLETED')}>Завершён</button>
