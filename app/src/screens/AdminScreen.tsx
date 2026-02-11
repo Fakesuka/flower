@@ -53,7 +53,6 @@ export function AdminScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
-  const [isLoading, setIsLoading] = useState(true);
   
   // Edit modals
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -86,7 +85,6 @@ export function AdminScreen() {
   }, [settings]);
 
   const loadData = async () => {
-    setIsLoading(true);
     try {
       // Load products
       const productsRes = await api.products.getAll();
@@ -112,8 +110,6 @@ export function AdminScreen() {
       await fetchSettings();
     } catch (error) {
       console.error('Failed to load admin data:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -240,11 +236,6 @@ export function AdminScreen() {
       hapticNotification('error');
     }
   };
-
-  const formatCardNumber = (num: string) => {
-    return num;
-  };
-
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6 safe-top safe-bottom">
