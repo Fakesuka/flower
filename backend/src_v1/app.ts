@@ -7,6 +7,7 @@ import productsRoutes from './routes/products';
 import storiesRoutes from './routes/stories';
 import ordersRoutes from './routes/orders';
 import adminRoutes from './routes/admin';
+import paymentsRoutes from './routes/payments';
 import { errorHandler, notFoundHandler } from './middleware/error';
 
 export const app = express();
@@ -25,6 +26,8 @@ app.use('/api/products', productsRoutes);
 app.use('/api/stories', storiesRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/pay', paymentsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
