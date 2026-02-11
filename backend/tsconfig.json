@@ -4,16 +4,15 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./src_v1",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*"],
+  "include": ["src_v1/**/*"],
   "exclude": ["node_modules", "dist"]
 }

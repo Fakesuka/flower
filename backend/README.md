@@ -1,134 +1,109 @@
-# Цветочная Лавка - Backend
+# Backend v1 (Node.js + Express + TypeScript + SQLite)
 
-Backend for the "Цветочная Лавка" (Flower Shop) Telegram WebApp.
+Новый backend без Telegram auth/bots.
 
-## Features
+## Что реализовано
 
-- **Express.js** REST API with TypeScript
-- **SQLite** database for data persistence
-- **Telegram WebApp** authentication validation
-- **Dual Bot System**:
-  - Customer Bot - sends notifications to customers
-  - Florist Bot - receives orders and manages them
-- **Order Management** with status tracking
-- **Discount Card System** with admin approval
-- **Multi-location Support** (Цветочная лавка & Флоренция)
+- JWT auth (`/api/auth/login`) + bcrypt passwords
+- RBAC:
+  - `admin`: полный доступ
+  - `florist`: заказы, товары, истории (по правилам)
+- CRUD по точкам (`/api/stores`) — масштабируемо, не только 2 точки
+- CRUD по товарам (`/api/products`) и историям (`/api/stories`) для `admin/florist`
+- Заказы с новой моделью:
+  - `delivery_type`: `pickup | delivery`
+  - `pickup_store_id`
+  - `assigned_store_id`
+  - статусы: `NEW`, `ACCEPTED`, `NEED_CUSTOMER_CONFIRMATION`, `PAYMENT_LINK_SENT`, `PAID`, `IN_PROGRESS`, `READY`, `OUT_FOR_DELIVERY`, `COMPLETED`, `CANCELED`
+- Race accept для delivery: `POST /api/orders/:id/accept` в SQLite транзакции (`BEGIN IMMEDIATE`)
+  - второй accept получает `409 Conflict`
+- Аудит событий заказа: `order_events` + `POST /api/orders/:id/events`
+- Admin stats: `GET /api/admin/stats`
 
-## Quick Start
+## ENV
 
-### 1. Install Dependencies
+Создайте `backend/.env`:
+
+```env
+PORT=3001
+DB_PATH=data/database.sqlite
+JWT_SECRET=change-me
+JWT_EXPIRES_IN=1d
+
+# optional bootstrap admin on startup
+DEFAULT_ADMIN_USERNAME=admin
+DEFAULT_ADMIN_PASSWORD=admin12345
+```
+
+## Установка и запуск
 
 ```bash
+cd backend
 npm install
-```
-
-### 2. Configure Environment Variables
-
-```bash
-cp .env.example .env
-# Edit .env with your actual values
-```
-
-### 3. Run Development Server
-
-```bash
 npm run dev
 ```
 
-### 4. Build for Production
+Проверка health:
 
 ```bash
-npm run build
-npm start
+curl http://localhost:3001/api/health
 ```
 
-## Environment Variables
+## Миграции
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `PORT` | Server port (default: 3001) | No |
-| `NODE_ENV` | Environment (development/production) | No |
-| `CUSTOMER_BOT_TOKEN` | Telegram bot token for customer notifications | Yes |
-| `FLORIST_BOT_TOKEN` | Telegram bot token for florist notifications | Yes |
-| `FLORIST_CHAT_IDS` | Comma-separated list of florist Telegram chat IDs | Yes |
-| `PAYMENT_URL` | URL for payment processing | Yes |
-| `YANDEX_MAPS_URL` | Link to Yandex Maps review page | Yes |
-| `TWOGIS_URL` | Link to 2GIS review page | Yes |
+SQL-миграции лежат в `backend/migrations`. 
+Применяются автоматически при старте.
 
-## Telegram Bot Setup
+Таблица фиксации: `applied_migrations`.
 
-### Creating Bots
+## Как создать admin, 2 stores и 2 florist
 
-1. Talk to [@BotFather](https://t.me/BotFather) on Telegram
-2. Create two bots:
-   - Customer bot (for sending notifications)
-   - Florist bot (for receiving orders)
-3. Copy the bot tokens to your `.env` file
+### 1) Логин admin
 
-### Getting Florist Chat IDs
+Если задан `DEFAULT_ADMIN_USERNAME/DEFAULT_ADMIN_PASSWORD`, admin создаётся автоматически.
 
-1. Start the florist bot
-2. Florists send `/start` to the bot
-3. The bot will reply with their Chat ID
-4. Add these IDs to `FLORIST_CHAT_IDS` in `.env`
+```bash
+curl -X POST http://localhost:3001/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin12345"}'
+```
 
-## API Endpoints
+Скопируйте `token`.
 
-### Products
-- `GET /api/products` - Get all products
-- `GET /api/products/:id` - Get single product
-- `GET /api/products/category/:categoryId` - Get by category
-- `GET /api/products/search?q=query` - Search products
+### 2) Создать 2 точки
 
-### Orders
-- `GET /api/orders/my` - Get user's orders
-- `POST /api/orders` - Create new order
-- `GET /api/orders/:id` - Get order details
-- `POST /api/orders/:id/cancel` - Cancel order
+```bash
+curl -X POST http://localhost:3001/api/stores \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Цветочная лавка","address":"ул. Цветочная, 1"}'
 
-### Discount Cards
-- `GET /api/discount-cards/my` - Get user's card
-- `POST /api/discount-cards/request` - Request new card
-- `DELETE /api/discount-cards/my` - Remove card
+curl -X POST http://localhost:3001/api/stores \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Флоренция","address":"ул. Роз, 15"}'
+```
 
-### Admin Endpoints
-- `GET /api/orders` - Get all orders
-- `PUT /api/orders/:id/status` - Update order status
-- `GET /api/discount-cards/pending` - Get pending cards
-- `POST /api/discount-cards/:id/approve` - Approve card
-- `POST /api/discount-cards/:id/reject` - Reject card
+### 3) Создать 2 florist
 
-## Order Flow
+```bash
+curl -X POST http://localhost:3001/api/users \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"florist1","password":"pass12345","role":"florist","store_id":1}'
 
-1. **Customer creates order** → Order saved with status `pending`
-2. **Florists notified** → All florists receive order details
-3. **Florist accepts order** → Status changes to `accepted`
-4. **Customer receives payment notification**
-5. **Florist updates status**:
-   - `preparing` - Bouquet being assembled
-   - `delivering` - Out for delivery
-   - `delivered` - Delivered + review links sent
+curl -X POST http://localhost:3001/api/users \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"florist2","password":"pass12345","role":"florist","store_id":2}'
+```
 
-## Store Locations
+## Тесты
 
-Two store locations are supported:
+```bash
+npm test
+```
 
-- `cvetochaya_lavka` - Цветочная лавка
-- `florenciya` - Флоренция
-
-Customers select location during checkout. If flowers are unavailable at the selected location, florists can contact the customer to arrange alternatives.
-
-## Database Schema
-
-The SQLite database includes tables for:
-- `users` - Telegram user information
-- `products` - Product catalog
-- `categories` - Product categories
-- `orders` - Order details with status tracking
-- `discount_cards` - Discount card requests
-- `favorites` - User favorites
-- `cart_items` - Persistent cart
-
-## License
-
-MIT
+Покрыто минимально:
+- login success/failure
+- race accept: второй accept → `409`
