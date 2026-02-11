@@ -40,6 +40,7 @@ function App() {
     initialize,
     error: storeError,
     settings,
+    products,
   } = useApiStore();
 
   const [isInitializing, setIsInitializing] = useState(true);
@@ -160,11 +161,11 @@ function App() {
     );
   }
 
-  if (storeError) {
+  if (storeError && products.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-milk p-6">
         <div className="text-dusty-rose text-4xl mb-4">⚠️</div>
-        <h2 className="text-lg font-medium text-charcoal mb-2">Что-то пошло не так</h2>
+        <h2 className="text-lg font-medium text-charcoal mb-2">Сервер недоступен</h2>
         <p className="text-sm text-stone text-center mb-4">{storeError}</p>
         <button
           onClick={() => window.location.reload()}
@@ -178,6 +179,13 @@ function App() {
 
   return (
     <div className="min-h-screen bg-milk">
+      {storeError && products.length > 0 && (
+        <div className="max-w-md mx-auto px-4 pt-3">
+          <div className="rounded-xl border border-dusty-rose/30 bg-dusty-rose/10 px-3 py-2 text-xs text-charcoal">
+            Часть данных недоступна: {storeError}
+          </div>
+        </div>
+      )}
       <main className="max-w-md mx-auto">
         <AnimatePresence mode="wait">
           <motion.div

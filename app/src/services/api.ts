@@ -44,10 +44,36 @@ async function apiFetch<T>(
   }
   
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+    let errorMessage = '';
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const error = await response
+        .json()
+        .catch(() => ({ error: '' } as { error?: string; message?: string }));
+      errorMessage = error.error || error.message || '';
+    } else {
+      errorMessage = (await response.text().catch(() => '')).trim();
+    }
+
+    if (!errorMessage) {
+      if (response.status === 401 || response.status === 403) {
+        errorMessage = 'Требуется авторизация в Telegram.';
+      } else if (response.status === 404) {
+        errorMessage = 'Сервис временно недоступен (404).';
+      } else {
+        errorMessage = response.statusText || `HTTP ${response.status}`;
+      }
+    }
+
+    throw new Error(errorMessage);
   }
-  
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('Сервер вернул неожиданный формат ответа.');
+  }
+
   return response.json();
 }
 
