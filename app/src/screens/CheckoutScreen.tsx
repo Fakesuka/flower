@@ -85,13 +85,9 @@ export function CheckoutScreen() {
     try {
       const order = await createOrder({
         items: cart,
-        total: finalTotal,
-        subtotal,
-        deliveryCost,
-        discountAmount: hasApprovedCard ? cardDiscount : 0,
         discountCardId: hasApprovedCard ? discountCard?.id : undefined,
         deliveryDate: new Date().toISOString(),
-        address: { ...address as Address, isOutskirts },
+        address: address as Address,
         recipient: recipient as Recipient,
         paymentMethod,
         storeLocation,

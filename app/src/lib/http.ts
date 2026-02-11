@@ -12,12 +12,14 @@ export class ApiClientError extends Error {
 }
 
 export async function http<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  };
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
 
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   const json = await response.json().catch(() => ({}));
