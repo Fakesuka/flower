@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export class ApiClientError extends Error {
   status: number;
@@ -21,7 +21,18 @@ export async function http<T>(path: string, options: RequestInit = {}, token?: s
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch {
+    throw new ApiClientError(
+      'Не удалось подключиться к серверу. Проверьте интернет или попробуйте позже.',
+      0,
+      'NETWORK_ERROR'
+    );
+  }
+
   const json = await response.json().catch(() => ({}));
 
   if (!response.ok || json?.success === false) {
